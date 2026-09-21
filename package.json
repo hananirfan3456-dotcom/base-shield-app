@@ -1,0 +1,28 @@
+{
+  "name": "base-shield-scanner-backend",
+  "version": "1.0.0",
+  "description": "Backend API service and proxy for Base Shield Scanner (Base Network Chain ID: 8453)",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js"
+  },
+  "keywords": [
+    "base-network",
+    "goplus-security",
+    "dexscreener",
+    "honeypot-detector",
+    "android",
+    "web3"
+  ],
+  "author": "Base Shield Scanner Team",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.7.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0"
+  }
+}

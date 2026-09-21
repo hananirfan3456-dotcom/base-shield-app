@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Base Shield Scanner</string>
+    <string name="title_live_dex">Live DEX Tokens</string>
+    <string name="title_scanner">Shield Scanner</string>
+    <string name="title_history">Scan History</string>
+    <string name="scan_token_prompt">Enter Base contract address (0x...)</string>
+    <string name="btn_scan_shield">Scan Shield</string>
+    <string name="param_honeypot_title">1. Honeypot Detection</string>
+    <string name="param_liquidity_title">2. Liquidity Lock Status</string>
+    <string name="param_tax_title">3. Excessive Buy / Sell Taxes</string>
+</resources>

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Base Shield Scanner - Live Base Network Security Auditor (Chain ID 8453)</title>
+  <meta name="description" content="Automated DEX token discovery and real-time smart contract safety scanner for Base Network. Strict honeypot detection, tax audits, and lp_locked liquidity lock verification.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070B13;
+      --card-bg: #0F1726;
+      --card-border: #1E2D44;
+      --primary: #0052FF;
+      --primary-hover: #1A66FF;
+      --primary-glow: rgba(0, 82, 255, 0.35);
+      --safe: #10B981;
+      --safe-bg: #064E3B;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --danger-bg: #7F1D1D;
+      --text: #F1F5F9;
+      --text-muted: #94A3B8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; padding: 20px 16px 60px; line-height: 1.5; }
+    .container { max-width: 900px; margin: 0 auto; }
+    
+    /* Top Header */
+    header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 20px; border-bottom: 1px solid var(--card-border); margin-bottom: 24px; flex-wrap: wrap; gap: 14px; }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .logo-shield { width: 44px; height: 44px; background: linear-gradient(135deg, #0052FF 0%, #0036B3 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 0 20px var(--primary-glow); }
+    h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #FFF; }
+    .network-badge { background: rgba(0, 82, 255, 0.12); color: #60A5FA; border: 1px solid rgba(0, 82, 255, 0.3); font-size: 11px; padding: 5px 12px; border-radius: 999px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .dot { width: 7px; height: 7px; background: #10B981; border-radius: 50%; box-shadow: 0 0 8px #10B981; }
+
+    /* Hero Banner */
+    .hero { background: linear-gradient(145deg, #0E1A30 0%, #0A1322 100%); border: 1.5px solid rgba(0, 82, 255, 0.35); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); text-align: center; }
+    .hero h2 { font-size: 20px; font-weight: 800; margin-bottom: 8px; color: #FFFFFF; }
+    .hero p { color: var(--text-muted); font-size: 14px; margin-bottom: 18px; max-width: 650px; margin-left: auto; margin-right: auto; }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-download { background: var(--primary); color: #FFF; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; box-shadow: 0 4px 16px var(--primary-glow); }
+    .btn-download:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn-sub { background: #152238; color: #E2E8F0; text-decoration: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 14px; border: 1px solid #233550; display: inline-flex; align-items: center; gap: 8px; }
+
+    /* Card Wrapper */
+    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 22px; margin-bottom: 24px; }
+    .card-head { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+
+    /* Search Bar */
+    .search-box { display: flex; gap: 10px; }
+    .search-input { flex: 1; background: #080D18; border: 1px solid #22344D; border-radius: 10px; padding: 14px 16px; font-size: 14px; color: #FFF; font-family: 'JetBrains Mono', monospace; outline: none; transition: 0.2s; }
+    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 12px rgba(0, 82, 255, 0.25); }
+    .btn-scan { background: var(--primary); color: #FFF; border: none; padding: 14px 26px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px; font-size: 14px; }
+    .btn-scan:hover { background: var(--primary-hover); }
+
+    /* Presets */
+    .presets-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+    .preset-chip { background: #131E30; border: 1px solid #20314A; color: #94A3B8; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+    .preset-chip:hover { background: rgba(0, 82, 255, 0.15); color: #93C5FD; border-color: rgba(0, 82, 255, 0.4); }
+    .preset-danger { border-color: rgba(239, 68, 68, 0.4); color: #FCA5A5; }
+    .preset-danger:hover { background: rgba(239, 68, 68, 0.2); }
+
+    /* Scan Results */
+    #scanSection { display: none; margin-top: 22px; }
+    .score-card { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-radius: 14px; margin-bottom: 16px; }
+    .score-card.safe { background: rgba(16, 185, 129, 0.1); border: 1.5px solid var(--safe); }
+    .score-card.critical { background: rgba(239, 68, 68, 0.12); border: 1.5px solid var(--danger); }
+    .score-title { font-size: 20px; font-weight: 800; color: #FFF; }
+    .score-status { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+    .score-num { font-size: 38px; font-weight: 900; font-family: 'JetBrains Mono', monospace; }
+
+    /* Liquidity Warning Box */
+    .warning-box { padding: 16px 18px; border-radius: 12px; margin-bottom: 16px; font-size: 13.5px; font-weight: 700; display: flex; align-items: flex-start; gap: 12px; line-height: 1.5; }
+    .warning-box.safe { background: var(--safe-bg); border: 1.5px solid var(--safe); color: #D1FAE5; }
+    .warning-box.critical { background: var(--danger-bg); border: 1.5px solid var(--danger); color: #FEE2E2; }
+    .warning-icon { font-size: 22px; line-height: 1; }
+
+    /* Parameters */
+    .params-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    .param-box { background: #0A101C; border: 1px solid #1C2B42; border-radius: 12px; padding: 14px; }
+    .param-title { font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .param-state { font-size: 16px; font-weight: 800; margin-top: 6px; }
+
+    /* Active Base Tokens Feed */
+    .token-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: #0A111E; border: 1px solid #19273D; border-radius: 10px; margin-bottom: 8px; transition: 0.2s; }
+    .token-row:hover { border-color: rgba(0, 82, 255, 0.5); background: #0E182A; }
+    .token-meta { display: flex; align-items: center; gap: 12px; }
+    .token-badge { width: 34px; height: 34px; background: #132238; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: #60A5FA; }
+    .btn-quick-scan { background: #15243C; border: 1px solid #233752; color: #93C5FD; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+    .btn-quick-scan:hover { background: var(--primary); color: #FFF; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo-shield">🛡️</div>
+        <div>
+          <h1>Base Shield Scanner</h1>
+          <div style="font-size: 12px; color: var(--text-muted);">Smart Contract Security Auditor & DEX Tracker (Base Chain ID: 8453)</div>
+        </div>
+      </div>
+      <div class="network-badge">
+        <span class="dot"></span>
+        Base Mainnet (8453) Active
+      </div>
+    </header>
+
+    <!-- Download & Hosting Overview -->
+    <div class="hero">
+      <h2>🌐 Base Shield Scanner Web & Android Suite</h2>
+      <p>Real-time GoPlus smart contract security audits, automated Base DEX token feed, Honeypot detection, buy/sell taxes analysis, and strict liquidity lock status verification.</p>
+      <div class="hero-actions">
+        <a href="/base_shield_scanner.zip" download="base_shield_scanner.zip" class="btn-download">
+          <span>📦</span> Download base_shield_scanner.zip
+        </a>
+        <a href="https://github.com" target="_blank" rel="noopener" class="btn-sub">
+          <span>🚀</span> Deploy on Vercel
+        </a>
+      </div>
+    </div>
+
+    <!-- Live Contract Scanner -->
+    <div class="card">
+      <div class="card-head">🔍 Live Contract Scanner (GoPlus Security API)</div>
+      <div class="search-box">
+        <input type="text" id="contractInput" class="search-input" placeholder="Enter Base token contract address (0x...)" value="0x532f27101965dd16442e59d40670faf5ebb142e4">
+        <button class="btn-scan" onclick="performScan()">
+          <span>⚡</span> Audit Now
+        </button>
+      </div>
+
+      <div class="presets-bar">
+        <span style="font-size: 12px; color: #64748B; font-weight: 600;">Presets:</span>
+        <div class="preset-chip" onclick="applyPreset('0x532f27101965dd16442e59d40670faf5ebb142e4')">BRETT (100% Locked)</div>
+        <div class="preset-chip" onclick="applyPreset('0x4ed4e862860bed51a9570b96d89af5e1b0efefed')">DEGEN</div>
+        <div class="preset-chip" onclick="applyPreset('0x4200000000000000000000000000000000000006')">WETH</div>
+        <div class="preset-chip" onclick="applyPreset('0x940181a94A35A4569E4529A3CDfB74e38FD98631')">AERO</div>
+        <div class="preset-chip preset-danger" onclick="applyPreset('0xRUG200000000000000000000000000000000RUG2')">⚠️ Unlocked LP Demo</div>
+        <div class="preset-chip preset-danger" onclick="applyPreset('0xBAD100000000000000000000000000000000BAD1')">🚨 Honeypot Demo</div>
+      </div>
+
+      <!-- Scan Results Container -->
+      <div id="scanSection">
+        <div id="scoreCard" class="score-card safe">
+          <div>
+            <div id="tokenHeader" class="score-title">Brett (BRETT)</div>
+            <div id="statusHeader" class="score-status" style="color: #10B981;">SAFE TOKEN AUDIT</div>
+          </div>
+          <div class="score-num">
+            <span id="scoreValue" style="color: #10B981;">100</span><span style="font-size: 18px; color: #94A3B8;">/100</span>
+          </div>
+        </div>
+
+        <!-- Strict Liquidity Warning Box -->
+        <div id="liquidityBox" class="warning-box safe">
+          <span class="warning-icon" id="liquidityIcon">🔒</span>
+          <span id="liquidityText">Liquidity Status: Funds are locked in the smart contract. The owner cannot withdraw them.</span>
+        </div>
+
+        <!-- 3 Core Audit Parameters -->
+        <div class="params-grid">
+          <div class="param-box">
+            <div class="param-title">1. Honeypot & Code Safety</div>
+            <div id="paramHoneypot" class="param-state" style="color: #10B981;">Clean (No Trap)</div>
+          </div>
+          <div class="param-box">
+            <div class="param-title">2. Liquidity Lock Status</div>
+            <div id="paramLiquidity" class="param-state" style="color: #10B981;">Locked (30/30 pts)</div>
+          </div>
+          <div class="param-box">
+            <div class="param-title">3. Buy & Sell Taxes</div>
+            <div id="paramTaxes" class="param-state" style="color: #10B981;">0.0% / 0.0%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Base Network Tokens -->
+    <div class="card">
+      <div class="card-head">⚡ Active Base Network Tokens (DexScreener & GeckoTerminal)</div>
+      <div id="tokenFeed">
+        <div class="token-row">
+          <div class="token-meta">
+            <div class="token-badge">B</div>
+            <div>
+              <div style="font-weight: 700;">Brett (BRETT)</div>
+              <div style="font-size: 12px; color: var(--text-muted); font-family: monospace;">0x532f...42e4</div>
+            </div>
+          </div>
+          <button class="btn-quick-scan" onclick="applyPreset('0x532f27101965dd16442e59d40670faf5ebb142e4')">Scan Contract</button>
+        </div>
+
+        <div class="token-row">
+          <div class="token-meta">
+            <div class="token-badge">D</div>
+            <div>
+              <div style="font-weight: 700;">Degen (DEGEN)</div>
+              <div style="font-size: 12px; color: var(--text-muted); font-family: monospace;">0x4ed4...efed</div>
+            </div>
+          </div>
+          <button class="btn-quick-scan" onclick="applyPreset('0x4ed4e862860bed51a9570b96d89af5e1b0efefed')">Scan Contract</button>
+        </div>
+
+        <div class="token-row">
+          <div class="token-meta">
+            <div class="token-badge">W</div>
+            <div>
+              <div style="font-weight: 700;">Wrapped Ether (WETH)</div>
+              <div style="font-size: 12px; color: var(--text-muted); font-family: monospace;">0x4200...0006</div>
+            </div>
+          </div>
+          <button class="btn-quick-scan" onclick="applyPreset('0x4200000000000000000000000000000000000006')">Scan Contract</button>
+        </div>
+
+        <div class="token-row">
+          <div class="token-meta">
+            <div class="token-badge">A</div>
+            <div>
+              <div style="font-weight: 700;">Aerodrome (AERO)</div>
+              <div style="font-size: 12px; color: var(--text-muted); font-family: monospace;">0x9401...8631</div>
+            </div>
+          </div>
+          <button class="btn-quick-scan" onclick="applyPreset('0x940181a94A35A4569E4529A3CDfB74e38FD98631')">Scan Contract</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function applyPreset(addr) {
+      document.getElementById('contractInput').value = addr;
+      performScan();
+    }
+
+    async function performScan() {
+      const addr = document.getElementById('contractInput').value.trim();
+      if (!addr || !addr.startsWith('0x')) {
+        alert('Please enter a valid 0x Base address');
+        return;
+      }
+
+      document.getElementById('scanSection').style.display = 'block';
+
+      try {
+        const res = await fetch('/api/scan/' + addr);
+        const data = await res.json();
+
+        document.getElementById('tokenHeader').textContent = (data.tokenName || 'Base Token') + ' (' + (data.tokenSymbol || 'TOKEN') + ')';
+        document.getElementById('scoreValue').textContent = data.safetyScore;
+
+        const card = document.getElementById('scoreCard');
+        const statusH = document.getElementById('statusHeader');
+        const scoreV = document.getElementById('scoreValue');
+        const lBox = document.getElementById('liquidityBox');
+        const lIcon = document.getElementById('liquidityIcon');
+        const lText = document.getElementById('liquidityText');
+
+        const isSafe = data.safetyScore >= 75 && data.liquidityLock.isLocked;
+
+        if (isSafe) {
+          card.className = 'score-card safe';
+          statusH.textContent = 'SAFE TOKEN AUDIT';
+          statusH.style.color = '#10B981';
+          scoreV.style.color = '#10B981';
+          lBox.className = 'warning-box safe';
+          lIcon.textContent = '🔒';
+          lText.textContent = data.liquidityLock.explicitWarning;
+        } else {
+          card.className = 'score-card critical';
+          statusH.textContent = 'CRITICAL RISK DETECTED';
+          statusH.style.color = '#EF4444';
+          scoreV.style.color = '#EF4444';
+          lBox.className = 'warning-box critical';
+          lIcon.textContent = '🚨';
+          lText.textContent = data.liquidityLock.explicitWarning;
+        }
+
+        document.getElementById('paramHoneypot').textContent = data.honeypot.isHoneypot ? 'TRAP DETECTED' : 'Clean (40/40 pts)';
+        document.getElementById('paramHoneypot').style.color = data.honeypot.isHoneypot ? '#EF4444' : '#10B981';
+
+        document.getElementById('paramLiquidity').textContent = data.liquidityLock.isLocked ? 'Locked (30/30 pts)' : 'UNLOCKED (0/30 pts)';
+        document.getElementById('paramLiquidity').style.color = data.liquidityLock.isLocked ? '#10B981' : '#EF4444';
+
+        document.getElementById('paramTaxes').textContent = data.taxes.buyTax + ' / ' + data.taxes.sellTax;
+        document.getElementById('paramTaxes').style.color = (parseFloat(data.taxes.buyTax) > 10 || parseFloat(data.taxes.sellTax) > 10) ? '#EF4444' : '#10B981';
+
+      } catch (err) {
+        console.error('Scan error:', err);
+      }
+    }
+
+    // Run default preset on initial page load
+    window.addEventListener('DOMContentLoaded', performScan);
+  </script>
+</body>
+</html>

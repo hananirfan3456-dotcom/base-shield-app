@@ -1,0 +1,33 @@
+# ==============================================================================
+# Base Shield Scanner - Backend Dependencies
+# ==============================================================================
+# This file lists the core backend microservice dependencies for the 
+# Base Shield Scanner (Base Network Chain ID: 8453 security scanner & DEX tracker).
+# Compatible with both Node.js/npm environments and polyglot container runtimes.
+
+# Core HTTP Server & Routing
+express>=4.19.2
+
+# HTTP Client for DexScreener, GeckoTerminal & GoPlus Security APIs
+axios>=1.7.2
+
+# Cross-Origin Resource Sharing (CORS) Middleware
+cors>=2.8.5
+
+# Environment Configuration
+dotenv>=16.4.5
+
+# HTTP Request Logger & Security Headers
+helmet>=7.1.0
+morgan>=1.10.0
+
+# Blockchain / Web3 Utilities for Base (EVM Chain 8453)
+ethers>=6.13.0
+web3>=6.19.0
+bignumber.js>=9.1.2
+
+# Optional Python / ML Security Analysis Tooling (if running Python backend):
+# flask>=3.0.0
+# requests>=2.31.0
+# web3>=6.15.0
+# gunicorn>=22.0.0

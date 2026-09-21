@@ -1,0 +1,6 @@
+{
+  "name": "Base Shield Scanner",
+  "description": "Real-time security scanner for Base Network (Chain ID: 8453) tokens with dynamic DEX tracker, GoPlus safety scores, honeypot detection, liquidity lock analysis, and tax alerts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
