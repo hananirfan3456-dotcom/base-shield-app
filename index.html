@@ -711,10 +711,11 @@
     <!-- ========================================================================= -->
     <!-- TAB 1: DEX FEED -->
     <!-- ========================================================================= -->
-    <section id="paneDex" class="tab-pane active">
+    <section id="paneDex" class="tab-pane active feed-container" data-testid="feed-container">
       <div class="feed-controls">
         <div class="category-pills">
-          <button class="pill-btn active" id="catTrending" onclick="filterCategory('trending')">🔥 Trending</button>
+          <button class="pill-btn active" id="catAll" onclick="filterCategory('all')">🌐 All Tokens</button>
+          <button class="pill-btn" id="catTrending" onclick="filterCategory('trending')">🔥 Trending</button>
           <button class="pill-btn" id="catVolume" onclick="filterCategory('volume')">💎 Top Volume</button>
           <button class="pill-btn" id="catNew" onclick="filterCategory('new')">🚀 Newly Launched</button>
         </div>
@@ -724,18 +725,19 @@
         </div>
       </div>
 
-      <div class="token-list" id="tokenListContainer">
+      <!-- Feed Container & List -->
+      <div class="token-list feed-container feed-list" id="tokenListContainer" data-testid="token-list-container">
         <!-- Injected via JavaScript -->
       </div>
 
       <!-- Visible Loading Indicator Spinner for Infinite Scroll -->
-      <div class="infinite-scroll-loader" id="infiniteScrollSpinner" style="display: none;">
+      <div class="infinite-scroll-loader loading-spinner spinner" id="infiniteScrollSpinner" data-testid="loading-spinner" style="display: none;">
         <div class="spinner-ring"></div>
         <div class="spinner-text" id="infiniteLoadingText">Fetching next 10 tokens from API (Page 2)...</div>
       </div>
 
       <!-- Sentinel element for IntersectionObserver -->
-      <div id="feedBottomSentinel" style="height: 20px; margin-top: 10px;"></div>
+      <div id="feedBottomSentinel" class="feed-bottom-sentinel" style="height: 20px; margin-top: 10px;"></div>
     </section>
 
     <!-- ========================================================================= -->
@@ -860,7 +862,7 @@
     let isFetchingPage = false;
     let hasMorePages = true;
     let feedTokens = []; // accumulated tokens loaded via pagination
-    let currentCategory = 'trending';
+    let currentCategory = 'all';
     let searchQuery = '';
     let scanHistory = JSON.parse(localStorage.getItem('base_shield_history') || '[]');
 
@@ -918,6 +920,48 @@
       return tokens;
     }
 
+    function createTokenCardHtml(token) {
+      const isUp = token.change24h && token.change24h.startsWith('+');
+      const shortAddr = (token.address && token.address.length > 10)
+        ? token.address.substring(0, 6) + '...' + token.address.substring(token.address.length - 4)
+        : (token.address || '0x...');
+      const activeBadge = token.active !== false 
+        ? '<span class="token-badge-active active">ACTIVE</span>'
+        : '<span class="token-badge-active inactive">INACTIVE</span>';
+      return `
+        <div class="token-item" data-address="${token.address}" data-symbol="${token.symbol}">
+          <div class="token-main">
+            <div class="token-icon">${(token.symbol || 'TK').substring(0, 2)}</div>
+            <div>
+              <div class="token-title">
+                ${token.name} <span class="token-sym">${token.symbol}</span>
+                ${activeBadge}
+              </div>
+              <div class="token-addr">${shortAddr} • Liq: ${token.liquidity || 'N/A'}</div>
+            </div>
+          </div>
+          <div class="token-stats">
+            <div>
+              <div class="stat-val">${token.price || '$0.00'}</div>
+              <div class="stat-change ${isUp ? 'change-up' : 'change-down'}">${token.change24h || '0.00%'}</div>
+            </div>
+            <button class="btn-audit" onclick="auditFromFeed('${token.address}')">⚡ Scan</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function appendTokensToFeed(newTokens) {
+      const container = document.getElementById('tokenListContainer');
+      if (!container) return;
+      if (currentCategory !== 'all' || searchQuery) {
+        renderDexFeed();
+        return;
+      }
+      const html = newTokens.map(t => createTokenCardHtml(t)).join('');
+      container.insertAdjacentHTML('beforeend', html);
+    }
+
     async function fetchTokenPage(page) {
       if (isFetchingPage) return;
       isFetchingPage = true;
@@ -926,9 +970,13 @@
       const spinnerText = document.getElementById('infiniteLoadingText');
       if (spinner) {
         spinner.style.display = 'flex';
-        spinnerText.textContent = page === 1 
-          ? 'Loading initial 10 tokens from Base API...' 
-          : `Fetching next 10 tokens from API (Page ${page})...`;
+        spinner.classList.remove('hidden');
+        spinner.classList.add('visible', 'active');
+        if (spinnerText) {
+          spinnerText.textContent = page === 1 
+            ? 'Loading initial 10 tokens from Base API...' 
+            : `Fetching next 10 tokens from API (Page ${page})...`;
+        }
       }
 
       let newTokens = [];
@@ -952,12 +1000,15 @@
         newTokens = newTokens.slice(0, TOKENS_PER_PAGE);
       }
 
-      // Append seamlessly
-      feedTokens = feedTokens.concat(newTokens);
+      // Update state and append dynamically
+      if (page === 1) {
+        feedTokens = newTokens;
+        renderDexFeed();
+      } else {
+        feedTokens = feedTokens.concat(newTokens);
+        appendTokensToFeed(newTokens);
+      }
       currentFeedPage = page;
-
-      // Render updated feed
-      renderDexFeed();
 
       // Update indicator
       const ind = document.getElementById('feedPageIndicator');
@@ -967,9 +1018,13 @@
 
       // Hide spinner after smooth transition
       setTimeout(() => {
-        if (spinner) spinner.style.display = 'none';
+        if (spinner) {
+          spinner.style.display = 'none';
+          spinner.classList.remove('visible', 'active');
+          spinner.classList.add('hidden');
+        }
         isFetchingPage = false;
-      }, 350);
+      }, 400);
     }
 
     function loadNextPage() {
@@ -992,18 +1047,37 @@
         observer.observe(sentinel);
       }
 
-      // 2. Window scroll event listener for seamless infinite scrolling
-      window.addEventListener('scroll', () => {
+      // 2. Container scroll listeners (for container-level scrolling)
+      const feedContainers = [
+        document.getElementById('tokenListContainer'),
+        document.getElementById('paneDex'),
+        document.querySelector('.feed-container')
+      ];
+      feedContainers.forEach(c => {
+        if (!c) return;
+        c.addEventListener('scroll', () => {
+          if (isFetchingPage || !hasMorePages) return;
+          if (c.scrollHeight - c.scrollTop - c.clientHeight < 300) {
+            loadNextPage();
+          }
+        }, { passive: true });
+      });
+
+      // 3. Window & Document scroll listeners for page scrolling
+      const onScroll = () => {
         const dexPane = document.getElementById('paneDex');
         if (!dexPane || !dexPane.classList.contains('active')) return;
         if (isFetchingPage || !hasMorePages) return;
 
-        const scrollPosition = window.innerHeight + window.scrollY;
-        const threshold = document.documentElement.scrollHeight - 350;
+        const scrollPosition = window.innerHeight + (window.scrollY || document.documentElement.scrollTop || 0);
+        const threshold = (document.documentElement.scrollHeight || document.body.scrollHeight) - 350;
         if (scrollPosition >= threshold) {
           loadNextPage();
         }
-      }, { passive: true });
+      };
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      document.addEventListener('scroll', onScroll, { passive: true });
     }
 
     // -------------------------------------------------------------
@@ -1032,9 +1106,10 @@
     function filterCategory(cat) {
       currentCategory = cat;
       document.querySelectorAll('.category-pills .pill-btn').forEach(b => b.classList.remove('active'));
-      if (cat === 'trending') document.getElementById('catTrending').classList.add('active');
-      if (cat === 'volume') document.getElementById('catVolume').classList.add('active');
-      if (cat === 'new') document.getElementById('catNew').classList.add('active');
+      if (cat === 'all') document.getElementById('catAll')?.classList.add('active');
+      if (cat === 'trending') document.getElementById('catTrending')?.classList.add('active');
+      if (cat === 'volume') document.getElementById('catVolume')?.classList.add('active');
+      if (cat === 'new') document.getElementById('catNew')?.classList.add('active');
       renderDexFeed();
     }
 
@@ -1046,7 +1121,9 @@
     function renderDexFeed() {
       const container = document.getElementById('tokenListContainer');
       let filtered = feedTokens.filter(t => {
-        const matchesCategory = (currentCategory === 'trending') ? true : t.category === currentCategory;
+        const matchesCategory = (currentCategory === 'all') 
+          ? true 
+          : (currentCategory === 'trending' ? (t.category === 'trending' || t.category === 'volume') : t.category === currentCategory);
         const matchesSearch = !searchQuery || 
           t.name.toLowerCase().includes(searchQuery) || 
           t.symbol.toLowerCase().includes(searchQuery) || 
@@ -1059,34 +1136,7 @@
         return;
       }
 
-      container.innerHTML = filtered.map(token => {
-        const isUp = token.change24h.startsWith('+');
-        const shortAddr = token.address.substring(0, 6) + '...' + token.address.substring(token.address.length - 4);
-        const activeBadge = token.active !== false 
-          ? '<span class="token-badge-active active">ACTIVE</span>'
-          : '<span class="token-badge-active inactive">INACTIVE</span>';
-        return `
-          <div class="token-item">
-            <div class="token-main">
-              <div class="token-icon">${token.symbol.substring(0, 2)}</div>
-              <div>
-                <div class="token-title">
-                  ${token.name} <span class="token-sym">${token.symbol}</span>
-                  ${activeBadge}
-                </div>
-                <div class="token-addr">${shortAddr} • Liq: ${token.liquidity}</div>
-              </div>
-            </div>
-            <div class="token-stats">
-              <div>
-                <div class="stat-val">${token.price}</div>
-                <div class="stat-change ${isUp ? 'change-up' : 'change-down'}">${token.change24h}</div>
-              </div>
-              <button class="btn-audit" onclick="auditFromFeed('${token.address}')">⚡ Scan</button>
-            </div>
-          </div>
-        `;
-      }).join('');
+      container.innerHTML = filtered.map(token => createTokenCardHtml(token)).join('');
     }
 
     function auditFromFeed(address) {
