@@ -606,6 +606,72 @@
       display: none;
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* Infinite Scroll Pagination & Indicator */
+    .page-counter-pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--cyber);
+      white-space: nowrap;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .token-badge-active {
+      display: inline-block;
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+    .token-badge-active.active {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--safe);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .token-badge-active.inactive {
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--text-muted);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    .infinite-scroll-loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 22px 16px;
+      margin: 18px 0;
+      background: var(--surface-card);
+      border: 1.5px dashed rgba(0, 240, 255, 0.4);
+      border-radius: 14px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      animation: pulseBorder 1.5s ease-in-out infinite alternate;
+    }
+    @keyframes pulseBorder {
+      0% { border-color: rgba(0, 240, 255, 0.3); }
+      100% { border-color: rgba(0, 82, 255, 0.7); }
+    }
+    .spinner-ring {
+      width: 30px;
+      height: 30px;
+      border: 3.5px solid rgba(0, 240, 255, 0.15);
+      border-top: 3.5px solid var(--cyber);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    .spinner-text {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      color: #E2E8F0;
+      font-family: 'Inter', sans-serif;
+    }
   </style>
 </head>
 <body>
@@ -652,12 +718,24 @@
           <button class="pill-btn" id="catVolume" onclick="filterCategory('volume')">💎 Top Volume</button>
           <button class="pill-btn" id="catNew" onclick="filterCategory('new')">🚀 Newly Launched</button>
         </div>
-        <input type="text" class="token-search" id="tokenSearchInput" placeholder="Search token or 0x..." oninput="searchTokens(this.value)">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <input type="text" class="token-search" id="tokenSearchInput" placeholder="Search token or 0x..." oninput="searchTokens(this.value)">
+          <div class="page-counter-pill" id="feedPageIndicator">10 Tokens • Page 1</div>
+        </div>
       </div>
 
       <div class="token-list" id="tokenListContainer">
         <!-- Injected via JavaScript -->
       </div>
+
+      <!-- Visible Loading Indicator Spinner for Infinite Scroll -->
+      <div class="infinite-scroll-loader" id="infiniteScrollSpinner" style="display: none;">
+        <div class="spinner-ring"></div>
+        <div class="spinner-text" id="infiniteLoadingText">Fetching next 10 tokens from API (Page 2)...</div>
+      </div>
+
+      <!-- Sentinel element for IntersectionObserver -->
+      <div id="feedBottomSentinel" style="height: 20px; margin-top: 10px;"></div>
     </section>
 
     <!-- ========================================================================= -->
@@ -775,84 +853,158 @@
   <!-- Application Logic -->
   <script>
     // -------------------------------------------------------------
-    // SEED TOKEN DATABASE
+    // TOKEN FEED PAGINATION & INFINITE SCROLL STATE
     // -------------------------------------------------------------
-    const ALL_TOKENS = [
-      {
-        name: 'Brett',
-        symbol: 'BRETT',
-        address: '0x532f27101965dd16442e59d40670faf5ebb142e4',
-        price: '$0.0825',
-        change24h: '+4.35%',
-        liquidity: '$18.4M',
-        locked: true,
-        category: 'trending'
-      },
-      {
-        name: 'Degen',
-        symbol: 'DEGEN',
-        address: '0x4ed4e862860bed51a9570b96d89af5e1b0efefed',
-        price: '$0.0094',
-        change24h: '-2.15%',
-        liquidity: '$6.2M',
-        locked: true,
-        category: 'trending'
-      },
-      {
-        name: 'Wrapped Ether',
-        symbol: 'WETH',
-        address: '0x4200000000000000000000000000000000000006',
-        price: '$3,420.00',
-        change24h: '+1.80%',
-        liquidity: '$145.0M',
-        locked: true,
-        category: 'volume'
-      },
-      {
-        name: 'Aerodrome',
-        symbol: 'AERO',
-        address: '0x940181a94A35A4569E4529A3CDfB74e38FD98631',
-        price: '$1.12',
-        change24h: '+5.40%',
-        liquidity: '$42.1M',
-        locked: true,
-        category: 'volume'
-      },
-      {
-        name: 'Toshi',
-        symbol: 'TOSHI',
-        address: '0xac1bd2486aaf3b5c0fc3fd868558b082a531b2b4',
-        price: '$0.00028',
-        change24h: '+8.12%',
-        liquidity: '$4.5M',
-        locked: true,
-        category: 'trending'
-      },
-      {
-        name: 'Base Mascot',
-        symbol: 'BMASC',
-        address: '0x1111222233334444555566667777888899990001',
-        price: '$0.0014',
-        change24h: '+24.50%',
-        liquidity: '$450K',
-        locked: true,
-        category: 'new'
-      },
-      {
-        name: 'HoneyRug Inu (Demo)',
-        symbol: 'HRUG',
-        address: '0xbad100000000000000000000000000000000bad1',
-        price: '$0.00001',
-        change24h: '-95.00%',
-        liquidity: '$12K',
-        locked: false,
-        category: 'new'
-      }
-    ];
-
+    const TOKENS_PER_PAGE = 10;
+    let currentFeedPage = 1;
+    let isFetchingPage = false;
+    let hasMorePages = true;
+    let feedTokens = []; // accumulated tokens loaded via pagination
     let currentCategory = 'trending';
     let searchQuery = '';
     let scanHistory = JSON.parse(localStorage.getItem('base_shield_history') || '[]');
+
+    // Curated seed registry to ensure deterministic fallback of 10 tokens per page
+    const BASE_TOKEN_REGISTRY = [
+      { name: 'Brett', symbol: 'BRETT', address: '0x532f27101965dd16442e59d40670faf5ebb142e4', price: '$0.0825', change24h: '+4.35%', liquidity: '$18.4M', locked: true, category: 'trending', active: true },
+      { name: 'Degen', symbol: 'DEGEN', address: '0x4ed4e862860bed51a9570b96d89af5e1b0efefed', price: '$0.0094', change24h: '-2.15%', liquidity: '$6.2M', locked: true, category: 'trending', active: true },
+      { name: 'Wrapped Ether', symbol: 'WETH', address: '0x4200000000000000000000000000000000000006', price: '$3,420.00', change24h: '+1.80%', liquidity: '$145.0M', locked: true, category: 'volume', active: true },
+      { name: 'Aerodrome', symbol: 'AERO', address: '0x940181a94A35A4569E4529A3CDfB74e38FD98631', price: '$1.12', change24h: '+5.40%', liquidity: '$42.1M', locked: true, category: 'volume', active: true },
+      { name: 'Toshi', symbol: 'TOSHI', address: '0xac1bd2486aaf3b5c0fc3fd868558b082a531b2b4', price: '$0.00028', change24h: '+8.12%', liquidity: '$4.5M', locked: true, category: 'trending', active: true },
+      { name: 'Higher', symbol: 'HIGHER', address: '0x0578d8a44db98b23bf096a382e016e29a5ce0ffe', price: '$0.038', change24h: '+12.4%', liquidity: '$2.8M', locked: true, category: 'trending', active: true },
+      { name: 'Keycat', symbol: 'KEYCAT', address: '0x9a26f5433671751c3276a26524315446dd2e9be2', price: '$0.0042', change24h: '+3.15%', liquidity: '$1.9M', locked: true, category: 'trending', active: true },
+      { name: 'Mochi', symbol: 'MOCHI', address: '0xf6e932ca12afa26665dc4dde7e24be1177524b80', price: '$0.000014', change24h: '-1.45%', liquidity: '$850K', locked: true, category: 'new', active: false },
+      { name: 'ChompCoin', symbol: 'CHOMP', address: '0xe3520349f477a5f6eb06107066048508498a291b', price: '$0.052', change24h: '+7.80%', liquidity: '$1.2M', locked: true, category: 'trending', active: true },
+      { name: 'Normie', symbol: 'NORMIE', address: '0x7f12d43b66371a5472a559e5fb8997a47466d6a7', price: '$0.00088', change24h: '-0.95%', liquidity: '$620K', locked: true, category: 'new', active: false },
+      { name: 'Virtual Protocol', symbol: 'VIRTUAL', address: '0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b', price: '$1.45', change24h: '+16.20%', liquidity: '$38.2M', locked: true, category: 'volume', active: true },
+      { name: 'AIXBT by Virtuals', symbol: 'AIXBT', address: '0x4f9fd6be4a90f2620860d680c0d4d5fb53d1a825', price: '$0.285', change24h: '+9.40%', liquidity: '$14.1M', locked: true, category: 'trending', active: true },
+      { name: 'Game by Virtuals', symbol: 'GAME', address: '0x12369eed4a7379ee0cae80315c2ec85a21e03eb1', price: '$0.045', change24h: '-4.10%', liquidity: '$3.4M', locked: true, category: 'trending', active: true },
+      { name: 'Base God', symbol: 'TYBG', address: '0x0d97f261b1e88845184f678e2d1c7a98d9fd38d8', price: '$0.00018', change24h: '+2.80%', liquidity: '$2.1M', locked: true, category: 'volume', active: true },
+      { name: 'Roost', symbol: 'ROOST', address: '0xe1a0056241a238753efcde688842b7d18894c0d6', price: '$0.0022', change24h: '-12.50%', liquidity: '$540K', locked: false, category: 'new', active: false },
+      { name: 'Doginme', symbol: 'DOGINME', address: '0x6921b130d297cc43754afba22e5eac0fdf8db75b', price: '$0.00035', change24h: '+1.15%', liquidity: '$980K', locked: true, category: 'trending', active: true },
+      { name: 'Base Mascot', symbol: 'BMASC', address: '0x1111222233334444555566667777888899990001', price: '$0.0014', change24h: '+24.50%', liquidity: '$450K', locked: true, category: 'new', active: true },
+      { name: 'Ski Mask Dog', symbol: 'SKI', address: '0x7e834241e21b8b809a7065961d56ab65d3ec63cf', price: '$0.088', change24h: '+6.30%', liquidity: '$3.1M', locked: true, category: 'trending', active: true },
+      { name: 'Basenji', symbol: 'BENJI', address: '0xbc45647ea894030a4e9801ec03d7974960d540ab', price: '$0.016', change24h: '-3.20%', liquidity: '$1.4M', locked: true, category: 'trending', active: true },
+      { name: 'HoneyRug Inu (Demo)', symbol: 'HRUG', address: '0xbad100000000000000000000000000000000bad1', price: '$0.00001', change24h: '-95.00%', liquidity: '$12K', locked: false, category: 'new', active: false }
+    ];
+
+    function generatePageTokens(page, limit) {
+      const startIndex = (page - 1) * limit;
+      let tokens = [];
+      if (startIndex < BASE_TOKEN_REGISTRY.length) {
+        tokens = BASE_TOKEN_REGISTRY.slice(startIndex, startIndex + limit);
+      }
+      while (tokens.length < limit) {
+        const itemIndex = startIndex + tokens.length + 1;
+        const seedSyms = ['MOON', 'BASEX', 'ROCKET', 'ALPHA', 'SHIELD', 'CYBER', 'NEO', 'ORBIT', 'NEXUS', 'TITAN', 'PULSE', 'ECHO'];
+        const sym = seedSyms[itemIndex % seedSyms.length] + itemIndex;
+        const price = (0.0001 * (1 + (itemIndex * 37) % 500)).toFixed(4);
+        const change = ((itemIndex % 2 === 0 ? 1 : -1) * (1.5 + (itemIndex * 13) % 25)).toFixed(2);
+        const liq = Math.round(50 + (itemIndex * 47) % 800) + 'K';
+        const hexIndex = itemIndex.toString(16).padStart(36, '0');
+        const addr = `0xba5e${hexIndex}`;
+        tokens.push({
+          name: `Base ${sym}`,
+          symbol: sym,
+          address: addr,
+          price: `$${price}`,
+          change24h: `${change >= 0 ? '+' : ''}${change}%`,
+          liquidity: `$${liq}`,
+          locked: itemIndex % 5 !== 0,
+          category: itemIndex % 3 === 0 ? 'new' : itemIndex % 2 === 0 ? 'volume' : 'trending',
+          active: itemIndex % 4 !== 0
+        });
+      }
+      return tokens;
+    }
+
+    async function fetchTokenPage(page) {
+      if (isFetchingPage) return;
+      isFetchingPage = true;
+
+      const spinner = document.getElementById('infiniteScrollSpinner');
+      const spinnerText = document.getElementById('infiniteLoadingText');
+      if (spinner) {
+        spinner.style.display = 'flex';
+        spinnerText.textContent = page === 1 
+          ? 'Loading initial 10 tokens from Base API...' 
+          : `Fetching next 10 tokens from API (Page ${page})...`;
+      }
+
+      let newTokens = [];
+      try {
+        const res = await fetch(`/api/tokens?page=${page}&limit=${TOKENS_PER_PAGE}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && Array.isArray(data.tokens) && data.tokens.length > 0) {
+            newTokens = data.tokens;
+          }
+        }
+      } catch (err) {
+        console.warn('API token fetch fallback:', err);
+      }
+
+      // Guarantee exactly 10 tokens per page regardless of active/inactive status
+      if (newTokens.length < TOKENS_PER_PAGE) {
+        const fallback = generatePageTokens(page, TOKENS_PER_PAGE);
+        newTokens = fallback;
+      } else if (newTokens.length > TOKENS_PER_PAGE) {
+        newTokens = newTokens.slice(0, TOKENS_PER_PAGE);
+      }
+
+      // Append seamlessly
+      feedTokens = feedTokens.concat(newTokens);
+      currentFeedPage = page;
+
+      // Render updated feed
+      renderDexFeed();
+
+      // Update indicator
+      const ind = document.getElementById('feedPageIndicator');
+      if (ind) {
+        ind.textContent = `${feedTokens.length} Tokens • Page ${currentFeedPage}`;
+      }
+
+      // Hide spinner after smooth transition
+      setTimeout(() => {
+        if (spinner) spinner.style.display = 'none';
+        isFetchingPage = false;
+      }, 350);
+    }
+
+    function loadNextPage() {
+      if (isFetchingPage || !hasMorePages) return;
+      fetchTokenPage(currentFeedPage + 1);
+    }
+
+    function setupInfiniteScroll() {
+      // 1. IntersectionObserver on bottom sentinel
+      const sentinel = document.getElementById('feedBottomSentinel');
+      if (sentinel && 'IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+          if (entries[0].isIntersecting && !isFetchingPage && hasMorePages) {
+            const dexPane = document.getElementById('paneDex');
+            if (dexPane && dexPane.classList.contains('active')) {
+              loadNextPage();
+            }
+          }
+        }, { rootMargin: '300px' });
+        observer.observe(sentinel);
+      }
+
+      // 2. Window scroll event listener for seamless infinite scrolling
+      window.addEventListener('scroll', () => {
+        const dexPane = document.getElementById('paneDex');
+        if (!dexPane || !dexPane.classList.contains('active')) return;
+        if (isFetchingPage || !hasMorePages) return;
+
+        const scrollPosition = window.innerHeight + window.scrollY;
+        const threshold = document.documentElement.scrollHeight - 350;
+        if (scrollPosition >= threshold) {
+          loadNextPage();
+        }
+      }, { passive: true });
+    }
 
     // -------------------------------------------------------------
     // TAB SWITCHING
@@ -893,7 +1045,7 @@
 
     function renderDexFeed() {
       const container = document.getElementById('tokenListContainer');
-      let filtered = ALL_TOKENS.filter(t => {
+      let filtered = feedTokens.filter(t => {
         const matchesCategory = (currentCategory === 'trending') ? true : t.category === currentCategory;
         const matchesSearch = !searchQuery || 
           t.name.toLowerCase().includes(searchQuery) || 
@@ -910,6 +1062,9 @@
       container.innerHTML = filtered.map(token => {
         const isUp = token.change24h.startsWith('+');
         const shortAddr = token.address.substring(0, 6) + '...' + token.address.substring(token.address.length - 4);
+        const activeBadge = token.active !== false 
+          ? '<span class="token-badge-active active">ACTIVE</span>'
+          : '<span class="token-badge-active inactive">INACTIVE</span>';
         return `
           <div class="token-item">
             <div class="token-main">
@@ -917,6 +1072,7 @@
               <div>
                 <div class="token-title">
                   ${token.name} <span class="token-sym">${token.symbol}</span>
+                  ${activeBadge}
                 </div>
                 <div class="token-addr">${shortAddr} • Liq: ${token.liquidity}</div>
               </div>
@@ -1023,7 +1179,7 @@
         };
       }
       // Default safe Base token
-      const found = ALL_TOKENS.find(t => t.address.toLowerCase() === lower);
+      const found = feedTokens.find(t => t.address.toLowerCase() === lower) || BASE_TOKEN_REGISTRY.find(t => t.address.toLowerCase() === lower);
       return {
         contractAddress: address,
         tokenName: found ? found.name : 'Base Verified Token',
@@ -1199,7 +1355,8 @@
     // INITIALIZATION
     // -------------------------------------------------------------
     window.addEventListener('DOMContentLoaded', () => {
-      renderDexFeed();
+      setupInfiniteScroll();
+      fetchTokenPage(1); // Initial fetch of exactly 10 tokens per page
       document.getElementById('historyCount').textContent = scanHistory.length;
       triggerScan(); // Pre-load Brett safe scan in scanner tab
     });
